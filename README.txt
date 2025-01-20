@@ -9,7 +9,7 @@ Before the data were publicly shared, all identifiable information was removed, 
 
 
 # Copyright and License
-This dataset is licensed under the Creative Commons Attribution 4.0 International License (CC BY SA 4.0). 
+This dataset is licensed under CC0. 
 
 
 # References
