@@ -15,28 +15,29 @@ from pathlib import Path
 def get_expected_filename(subject_dir, file_type):
     """
     Determine the expected filename based on the subject directory name.
-    Based on the vhdr file content, the pattern seems to be:
+    Based on the vhdr file content analysis, the pattern is:
     - COCOA_XXX_VO.vmrk/.eeg for subjects 001-096
     - SASA_XXX_VO.vmrk/.eeg for subjects 111-127
     
-    From vhdr file content: DataFile=COCOA_070_VO.eeg, MarkerFile=COCOA_070_VO.vmrk
-    This suggests the formula is: subject_num + 13 for COCOA series
+    Formula analysis from vhdr files:
+    - sub-001 to sub-056: subject_num + 12 (e.g., sub-001 -> COCOA_013_VO)
+    - sub-057 to sub-096: subject_num + 14 (e.g., sub-057 -> COCOA_071_VO, sub-078 -> COCOA_092_VO)
+    - sub-111 to sub-127: subject_num - 96 (e.g., sub-111 -> SASA_015_VO)
     """
     subject_num = int(subject_dir.name.split('-')[1])
     
-    if 1 <= subject_num <= 96:
-        # COCOA series - based on vhdr file content:
-        # sub-001 -> COCOA_014_VO, sub-002 -> COCOA_015_VO, etc.
-        # This suggests the formula is: subject_num + 13
-        return f"COCOA_{subject_num+13:03d}_VO.{file_type}"
+    if 1 <= subject_num <= 56:
+        # COCOA series - first segment: subject_num + 12
+        return f"COCOA_{subject_num+12:03d}_VO.{file_type}"
+    elif 57 <= subject_num <= 96:
+        # COCOA series - second segment: subject_num + 14
+        return f"COCOA_{subject_num+14:03d}_VO.{file_type}"
     elif 111 <= subject_num <= 127:
-        # SASA series - based on error messages, the pattern seems to be:
-        # sub-111 -> SASA_115_VO, sub-112 -> SASA_116_VO, etc.
-        # This suggests the formula is: subject_num - 96
+        # SASA series: subject_num - 96
         return f"SASA_{subject_num-96:03d}_VO.{file_type}"
     else:
-        # For subjects 97-110, 128+, use a generic pattern
-        return f"SUBJECT_{subject_num:03d}_VO.{file_type}"
+        # Unknown subject range
+        return None
 
 def fix_vmrk_files():
     """Main function to fix all vmrk and eeg files."""
@@ -81,6 +82,10 @@ def fix_vmrk_files():
         try:
             # Copy vmrk file with new name
             expected_vmrk_name = get_expected_filename(subject_dir, 'vmrk')
+            if expected_vmrk_name is None:
+                print(f"  Warning: Unknown subject range for {subject_dir.name}")
+                continue
+                
             target_vmrk_path = eeg_dir / expected_vmrk_name
             shutil.copy2(existing_vmrk, target_vmrk_path)
             print(f"  ✓ Copied vmrk: {existing_vmrk.name} -> {expected_vmrk_name}")
